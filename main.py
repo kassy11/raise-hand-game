@@ -33,6 +33,7 @@ INSTRUCTIONS = {
         "LeftNotDown": "Do not Lower Left.",
     },
     "ja": {
+        # TODO: 文字表示の日本語対応
         "RightUp": "Raise Right.",
         "RightNotUp": "Do not Raise Right.",
         "RightDown": "Lower Right.",
@@ -41,14 +42,6 @@ INSTRUCTIONS = {
         "LeftNotUp": "Do not Raise Left.",
         "LeftDown": "Lower Left.",
         "LeftNotDown": "Do not Lower Left.",
-        # "RightUp": "右上げて",
-        # "RightNotUp": "右上げないで",
-        # "RightDown": "右下げて",
-        # "RightNotDown": "右下げないで",
-        # "LeftUp": "左上げて",
-        # "LeftNotUp": "左上げないで",
-        # "LeftDown": "左下げて",
-        # "LeftNotDown": "左下げないで",
     },
 }
 
@@ -85,30 +78,32 @@ def play_wav(filename):
     p.terminate()
 
 
-def display_correct_mark(frame, center):
-    logger.info("正解")
-    # フレーム上にマル（円）を線で描画（円の半径を100に設定）
-    cv2.circle(frame, center, 100, (0, 255, 0), thickness=3)  # 緑色の円（線で描画）
-    return
+def display_game_over(num_correct):
+    image = cv2.imread("game_over.png")
 
+    cv2.putText(
+        image,
+        "Game Over !!!",
+        (50, 50),
+        cv2.FONT_HERSHEY_SIMPLEX,
+        1,
+        (0, 0, 255),
+        2,
+        cv2.LINE_AA,
+    )
+    cv2.putText(
+        image,
+        f"Your Score is {num_correct}.",
+        (50, 300),
+        cv2.FONT_HERSHEY_SIMPLEX,
+        1,
+        (0, 0, 255),
+        2,
+        cv2.LINE_AA,
+    )
 
-def display_incorrect_mark(frame, center):
-    logger.info("不正解")
-    # フレーム上にバツ（2本の直線）を描画
-    cv2.line(
-        frame,
-        (center[0] - 75, center[1] - 75),
-        (center[0] + 75, center[1] + 75),
-        (0, 0, 255),
-        5,
-    )  # 赤色の直線1
-    cv2.line(
-        frame,
-        (center[0] + 75, center[1] - 75),
-        (center[0] - 75, center[1] + 75),
-        (0, 0, 255),
-        5,
-    )  # 赤色の直線2
+    cv2.imshow("Game Over", image)
+
     return
 
 
@@ -141,19 +136,14 @@ def main():
     # instruction
     current_instruction = None
     instruction_start_time = None
-    instruction_duration = 3  # 指示の持続時間
+    instruction_duration = 3
 
+    num_correct = 0
     while cap.isOpened():
         success, image = cap.read()
         if not success:
             logger.info("Ignoring empty camera frame.")
             continue
-
-        # フレームの高さと幅を取得
-        height, width = image.shape[:2]
-
-        # フレームの中心を計算
-        center = (width // 2, height // 2)
 
         image = cv2.cvtColor(cv2.flip(image, 1), cv2.COLOR_BGR2RGB)
         image.flags.writeable = False
@@ -166,19 +156,19 @@ def main():
             current_instruction is None
             or time.time() - instruction_start_time > instruction_duration
         ):
-            # TODO: ここで更新する前に正解判定をすれば良さそう
-            if machine.state == "BothDown":
-                display_correct_mark(
-                    image, center
-                ) if result.multi_handedness is None else display_incorrect_mark(
-                    image, center
-                )
+            if machine.state == "BothDown" and current_instruction is not None:
+                if result.multi_handedness is None:
+                    num_correct += 1
+                else:
+                    break
             elif machine.state == "BothUp":
-                display_correct_mark(
-                    image, center
-                ) if result.multi_handedness is not None and len(
-                    result.multi_handedness
-                ) == 2 else display_incorrect_mark(image, center)
+                if (
+                    result.multi_handedness is not None
+                    and len(result.multi_handedness) == 2
+                ):
+                    num_correct += 1
+                else:
+                    break
             elif machine.state == "OnlyRightUp":
                 # TODO: ここ汚い
                 hand_type = (
@@ -186,18 +176,20 @@ def main():
                     if result.multi_handedness is not None
                     else None
                 )
-                display_correct_mark(
-                    image, center
-                ) if hand_type == "Right" else display_incorrect_mark(image, center)
+                if hand_type == "Right":
+                    num_correct += 1
+                else:
+                    break
             elif machine.state == "OnlyLeftUp":
                 hand_type = (
                     result.multi_handedness[0].classification[0].label
                     if result.multi_handedness is not None
                     else None
                 )
-                display_correct_mark(
-                    image, center
-                ) if hand_type == "Left" else display_incorrect_mark(image, center)
+                if hand_type == "Left":
+                    num_correct += 1
+                else:
+                    break
 
             # get new trigger
             current_trigger = random.choice(TRIGGERS)
@@ -213,7 +205,7 @@ def main():
             play_wav(f"./voice/{lang}/{voice_file}")
 
         # display instruction
-        # TODO: 言語によって表示を変える
+        # TODO: 日本語対応
         cv2.putText(
             image,
             current_instruction,
@@ -231,13 +223,19 @@ def main():
                     image, hand_landmarks, mp_hands.HAND_CONNECTIONS
                 )
 
-        cv2.imshow("MediaPipe Hands", image)
+        cv2.imshow("Raise Hand Game", image)
 
         if cv2.waitKey(5) & 0xFF == 27:
             break
 
     hands.close()
     cap.release()
+    cv2.destroyAllWindows()
+
+    while True:
+        display_game_over(num_correct)
+        if cv2.waitKey(5) & 0xFF == 27:
+            break
     cv2.destroyAllWindows()
 
 
