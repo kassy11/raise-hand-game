@@ -1,0 +1,7 @@
+logzero
+mediapipe
+opencv-contrib-python
+opencv-python
+PyAudio
+ruff
+transitions

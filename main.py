@@ -166,7 +166,7 @@ def main():
                 else:
                     break
             elif machine.state == "OnlyRaiseRight":
-                # TODO: ここ汚い
+                # TODO: リファクタリング
                 hand_type = (
                     result.multi_handedness[0].classification[0].label
                     if result.multi_handedness is not None

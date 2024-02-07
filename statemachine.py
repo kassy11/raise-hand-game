@@ -1,7 +1,6 @@
 from transitions import Machine
 
 
-# TODO: 図を生成する
 class StateMachine(object):
     STATES = ("BothDown", "BothUp", "OnlyRaiseRight", "OnlyRaiseLeft")
     TRANSITIONS = [
