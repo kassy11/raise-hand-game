@@ -8,53 +8,51 @@ import argparse
 from statemachine import StateMachine
 from logzero import logger
 
-# TODO: ここ汚い
-# TODO: 名前変える, RaiseRightとか
 TRIGGERS = (
-    "RightUp",
-    "RightNotUp",
-    "RightDown",
-    "RightNotDown",
-    "LeftUp",
-    "LeftNotUp",
-    "LeftDown",
-    "LeftNotDown",
+    "RaiseRight",
+    "DoNotRaiseRight",
+    "LowerRight",
+    "DoNotLowerRight",
+    "RaiseLeft",
+    "DoNotRaiseLeft",
+    "LowerLeft",
+    "DoNotLowerLeft",
 )
 
 INSTRUCTIONS = {
     "en": {
-        "RightUp": "Raise Right.",
-        "RightNotUp": "Do not Raise Right.",
-        "RightDown": "Lower Right.",
-        "RightNotDown": "Do not Lower Right.",
-        "LeftUp": "Raise Left.",
-        "LeftNotUp": "Do not Raise Left.",
-        "LeftDown": "Lower Left.",
-        "LeftNotDown": "Do not Lower Left.",
+        "RaiseRight": "Raise Right.",
+        "DoNotRaiseRight": "Do not Raise Right.",
+        "LowerRight": "Lower Right.",
+        "DoNotLowerRight": "Do not Lower Right.",
+        "RaiseLeft": "Raise Left.",
+        "DoNotRaiseLeft": "Do not Raise Left.",
+        "LowerLeft": "Lower Left.",
+        "DoNotLowerLeft": "Do not Lower Left.",
     },
     "ja": {
         # TODO: 文字表示の日本語対応
-        "RightUp": "Raise Right.",
-        "RightNotUp": "Do not Raise Right.",
-        "RightDown": "Lower Right.",
-        "RightNotDown": "Do not Lower Right.",
-        "LeftUp": "Raise Left.",
-        "LeftNotUp": "Do not Raise Left.",
-        "LeftDown": "Lower Left.",
-        "LeftNotDown": "Do not Lower Left.",
+        "RaiseRight": "Raise Right.",
+        "DoNotRaiseRight": "Do not Raise Right.",
+        "LowerRight": "Lower Right.",
+        "DoNotLowerRight": "Do not Lower Right.",
+        "RaiseLeft": "Raise Left.",
+        "DoNotRaiseLeft": "Do not Raise Left.",
+        "LowerLeft": "Lower Left.",
+        "DoNotLowerLeft": "Do not Lower Left.",
     },
 }
 
 
 VOICE_FILES = {
-    "RightUp": "right_up.wav",
-    "RightNotUp": "right_not_up.wav",
-    "RightDown": "right_down.wav",
-    "RightNotDown": "right_not_down.wav",
-    "LeftUp": "left_up.wav",
-    "LeftNotUp": "left_not_up.wav",
-    "LeftDown": "left_down.wav",
-    "LeftNotDown": "left_not_down.wav",
+    "RaiseRight": "right_up.wav",
+    "DoNotRaiseRight": "right_not_up.wav",
+    "LowerRight": "right_down.wav",
+    "DoNotLowerRight": "right_not_down.wav",
+    "RaiseLeft": "left_up.wav",
+    "DoNotRaiseLeft": "left_not_up.wav",
+    "LowerLeft": "left_down.wav",
+    "DoNotLowerLeft": "left_not_down.wav",
 }
 
 
@@ -84,7 +82,7 @@ def display_game_over(num_correct):
     cv2.putText(
         image,
         "Game Over !!!",
-        (50, 50),
+        (50, 100),
         cv2.FONT_HERSHEY_SIMPLEX,
         1,
         (0, 0, 255),
@@ -101,9 +99,7 @@ def display_game_over(num_correct):
         2,
         cv2.LINE_AA,
     )
-
     cv2.imshow("Game Over", image)
-
     return
 
 
@@ -169,7 +165,7 @@ def main():
                     num_correct += 1
                 else:
                     break
-            elif machine.state == "OnlyRightUp":
+            elif machine.state == "OnlyRaiseRight":
                 # TODO: ここ汚い
                 hand_type = (
                     result.multi_handedness[0].classification[0].label
@@ -180,7 +176,7 @@ def main():
                     num_correct += 1
                 else:
                     break
-            elif machine.state == "OnlyLeftUp":
+            elif machine.state == "OnlyRaiseLeft":
                 hand_type = (
                     result.multi_handedness[0].classification[0].label
                     if result.multi_handedness is not None

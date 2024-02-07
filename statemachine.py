@@ -3,44 +3,60 @@ from transitions import Machine
 
 # TODO: 図を生成する
 class StateMachine(object):
-    STATES = ("BothDown", "BothUp", "OnlyRightUp", "OnlyLeftUp")
+    STATES = ("BothDown", "BothUp", "OnlyRaiseRight", "OnlyRaiseLeft")
     TRANSITIONS = [
         # when current state is BothDown
-        {"trigger": "RightDown", "source": "BothDown", "dest": "BothDown"},
-        {"trigger": "LeftDown", "source": "BothDown", "dest": "BothDown"},
-        {"trigger": "RightNotUp", "source": "BothDown", "dest": "BothDown"},
-        {"trigger": "LeftNotUp", "source": "BothDown", "dest": "BothDown"},
-        {"trigger": "RightUp", "source": "BothDown", "dest": "OnlyRightUp"},
-        {"trigger": "RightNotDown", "source": "BothDown", "dest": "OnlyRightUp"},
-        {"trigger": "LeftUp", "source": "BothDown", "dest": "OnlyLeftUp"},
-        {"trigger": "LeftNotDown", "source": "BothDown", "dest": "OnlyLeftUp"},
-        # when current state is OnlyRightUp
-        {"trigger": "RightDown", "source": "OnlyRightUp", "dest": "BothDown"},
-        {"trigger": "RightNotUp", "source": "OnlyRightUp", "dest": "BothDown"},
-        {"trigger": "LeftDown", "source": "OnlyRightUp", "dest": "OnlyRightUp"},
-        {"trigger": "LeftNotUp", "source": "OnlyRightUp", "dest": "OnlyRightUp"},
-        {"trigger": "RightUp", "source": "OnlyRightUp", "dest": "OnlyRightUp"},
-        {"trigger": "RightNotDown", "source": "OnlyRightUp", "dest": "OnlyRightUp"},
-        {"trigger": "LeftUp", "source": "OnlyRightUp", "dest": "BothUp"},
-        {"trigger": "LeftNotDown", "source": "OnlyRightUp", "dest": "BothUp"},
-        # when current state is OnlyLeftUp
-        {"trigger": "LeftDown", "source": "OnlyLeftUp", "dest": "BothDown"},
-        {"trigger": "LeftNotUp", "source": "OnlyLeftUp", "dest": "BothDown"},
-        {"trigger": "RightUp", "source": "OnlyLeftUp", "dest": "BothUp"},
-        {"trigger": "RightNotDown", "source": "OnlyLeftUp", "dest": "BothUp"},
-        {"trigger": "RightDown", "source": "OnlyLeftUp", "dest": "OnlyLeftUp"},
-        {"trigger": "RightNotUp", "source": "OnlyLeftUp", "dest": "OnlyLeftUp"},
-        {"trigger": "LeftUp", "source": "OnlyLeftUp", "dest": "OnlyLeftUp"},
-        {"trigger": "LeftNotDown", "source": "OnlyLeftUp", "dest": "OnlyLeftUp"},
+        {"trigger": "LowerRight", "source": "BothDown", "dest": "BothDown"},
+        {"trigger": "LowerLeft", "source": "BothDown", "dest": "BothDown"},
+        {"trigger": "DoNotRaiseRight", "source": "BothDown", "dest": "BothDown"},
+        {"trigger": "DoNotRaiseLeft", "source": "BothDown", "dest": "BothDown"},
+        {"trigger": "RaiseRight", "source": "BothDown", "dest": "OnlyRaiseRight"},
+        {"trigger": "DoNotLowerRight", "source": "BothDown", "dest": "OnlyRaiseRight"},
+        {"trigger": "RaiseLeft", "source": "BothDown", "dest": "OnlyRaiseLeft"},
+        {"trigger": "DoNotLowerLeft", "source": "BothDown", "dest": "OnlyRaiseLeft"},
+        # when current state is OnlyRaiseRight
+        {"trigger": "LowerRight", "source": "OnlyRaiseRight", "dest": "BothDown"},
+        {"trigger": "DoNotRaiseRight", "source": "OnlyRaiseRight", "dest": "BothDown"},
+        {"trigger": "LowerLeft", "source": "OnlyRaiseRight", "dest": "OnlyRaiseRight"},
+        {
+            "trigger": "DoNotRaiseLeft",
+            "source": "OnlyRaiseRight",
+            "dest": "OnlyRaiseRight",
+        },
+        {"trigger": "RaiseRight", "source": "OnlyRaiseRight", "dest": "OnlyRaiseRight"},
+        {
+            "trigger": "DoNotLowerRight",
+            "source": "OnlyRaiseRight",
+            "dest": "OnlyRaiseRight",
+        },
+        {"trigger": "RaiseLeft", "source": "OnlyRaiseRight", "dest": "BothUp"},
+        {"trigger": "DoNotLowerLeft", "source": "OnlyRaiseRight", "dest": "BothUp"},
+        # when current state is OnlyRaiseLeft
+        {"trigger": "LowerLeft", "source": "OnlyRaiseLeft", "dest": "BothDown"},
+        {"trigger": "DoNotRaiseLeft", "source": "OnlyRaiseLeft", "dest": "BothDown"},
+        {"trigger": "RaiseRight", "source": "OnlyRaiseLeft", "dest": "BothUp"},
+        {"trigger": "DoNotLowerRight", "source": "OnlyRaiseLeft", "dest": "BothUp"},
+        {"trigger": "LowerRight", "source": "OnlyRaiseLeft", "dest": "OnlyRaiseLeft"},
+        {
+            "trigger": "DoNotRaiseRight",
+            "source": "OnlyRaiseLeft",
+            "dest": "OnlyRaiseLeft",
+        },
+        {"trigger": "RaiseLeft", "source": "OnlyRaiseLeft", "dest": "OnlyRaiseLeft"},
+        {
+            "trigger": "DoNotLowerLeft",
+            "source": "OnlyRaiseLeft",
+            "dest": "OnlyRaiseLeft",
+        },
         # when current state is BothUp
-        {"trigger": "RightDown", "source": "BothUp", "dest": "OnlyLeftUp"},
-        {"trigger": "RightNotUp", "source": "BothUp", "dest": "OnlyLeftUp"},
-        {"trigger": "LeftDown", "source": "BothUp", "dest": "OnlyRightUp"},
-        {"trigger": "LeftNotUp", "source": "BothUp", "dest": "OnlyRightUp"},
-        {"trigger": "RightUp", "source": "BothUp", "dest": "BothUp"},
-        {"trigger": "RightNotDown", "source": "BothUp", "dest": "BothUp"},
-        {"trigger": "LeftUp", "source": "BothUp", "dest": "BothUp"},
-        {"trigger": "LeftNotDown", "source": "BothUp", "dest": "BothUp"},
+        {"trigger": "LowerRight", "source": "BothUp", "dest": "OnlyRaiseLeft"},
+        {"trigger": "DoNotRaiseRight", "source": "BothUp", "dest": "OnlyRaiseLeft"},
+        {"trigger": "LowerLeft", "source": "BothUp", "dest": "OnlyRaiseRight"},
+        {"trigger": "DoNotRaiseLeft", "source": "BothUp", "dest": "OnlyRaiseRight"},
+        {"trigger": "RaiseRight", "source": "BothUp", "dest": "BothUp"},
+        {"trigger": "DoNotLowerRight", "source": "BothUp", "dest": "BothUp"},
+        {"trigger": "RaiseLeft", "source": "BothUp", "dest": "BothUp"},
+        {"trigger": "DoNotLowerLeft", "source": "BothUp", "dest": "BothUp"},
     ]
 
     def __init__(self) -> None:
