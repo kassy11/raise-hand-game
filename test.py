@@ -1,58 +1,53 @@
-from transitions import Machine
+import cv2
 
-STATES = ("BothDown", "BothUp", "OnlyRightUp", "OnlyLeftUp")
+# カメラのキャプチャを開始
+cap = cv2.VideoCapture(0)
 
-TRANSITIONS = [
-    # when current state is BothDown
-    {"trigger": "RightDown", "source": "BothDown", "dest": "BothDown"},
-    {"trigger": "LeftDown", "source": "BothDown", "dest": "BothDown"},
-    {"trigger": "RightNotUp", "source": "BothDown", "dest": "BothDown"},
-    {"trigger": "LeftNotUp", "source": "BothDown", "dest": "BothDown"},
-    {"trigger": "RightUp", "source": "BothDown", "dest": "OnlyRightUp"},
-    {"trigger": "RightNotDown", "source": "BothDown", "dest": "OnlyRightUp"},
-    {"trigger": "LeftUp", "source": "BothDown", "dest": "OnlyLeftUp"},
-    {"trigger": "LeftNotDown", "source": "BothDown", "dest": "OnlyLeftUp"},
-    # when current state is OnlyRightUp
-    {"trigger": "RightDown", "source": "OnlyRightUp", "dest": "BothDown"},
-    {"trigger": "RightNotUp", "source": "OnlyRightUp", "dest": "BothDown"},
-    {"trigger": "LeftDown", "source": "OnlyRightUp", "dest": "OnlyRightUp"},
-    {"trigger": "LeftNotUp", "source": "OnlyRightUp", "dest": "OnlyRightUp"},
-    {"trigger": "RightUp", "source": "OnlyRightUp", "dest": "OnlyRightUp"},
-    {"trigger": "RightNotDown", "source": "OnlyRightUp", "dest": "OnlyRightUp"},
-    {"trigger": "LeftUp", "source": "OnlyRightUp", "dest": "BothUp"},
-    {"trigger": "LeftNotDown", "source": "OnlyRightUp", "dest": "BothUp"},
-    # when current state is OnlyLeftUp
-    {"trigger": "LeftDown", "source": "OnlyLeftUp", "dest": "BothDown"},
-    {"trigger": "LeftNotUp", "source": "OnlyLeftUp", "dest": "BothDown"},
-    {"trigger": "RightUp", "source": "OnlyLeftUp", "dest": "BothUp"},
-    {"trigger": "RightNotDown", "source": "OnlyLeftUp", "dest": "BothUp"},
-    {"trigger": "RightDown", "source": "OnlyLeftUp", "dest": "OnlyLeftUp"},
-    {"trigger": "RightNotUp", "source": "OnlyLeftUp", "dest": "OnlyLeftUp"},
-    {"trigger": "LeftUp", "source": "OnlyLeftUp", "dest": "OnlyLeftUp"},
-    {"trigger": "LeftNotDown", "source": "OnlyLeftUp", "dest": "OnlyLeftUp"},
-    # when current state is BothUp
-    {"trigger": "RightDown", "source": "BothUp", "dest": "OnlyLeftUp"},
-    {"trigger": "RightNotUp", "source": "BothUp", "dest": "OnlyLeftUp"},
-    {"trigger": "LeftDown", "source": "BothUp", "dest": "OnlyRightUp"},
-    {"trigger": "LeftNotUp", "source": "BothUp", "dest": "OnlyRightUp"},
-    {"trigger": "RightUp", "source": "BothUp", "dest": "BothUp"},
-    {"trigger": "RightNotDown", "source": "BothUp", "dest": "BothUp"},
-    {"trigger": "LeftUp", "source": "BothUp", "dest": "BothUp"},
-    {"trigger": "LeftNotDown", "source": "BothUp", "dest": "BothUp"},
-]
+# カメラが開かれているか確認
+if not cap.isOpened():
+    print("カメラが開けません")
+    exit()
 
+# ループ開始
+while True:
+    # フレームをキャプチャ
+    ret, frame = cap.read()
+    if not ret:
+        print("フレームを取得できませんでした")
+        break
 
-class Matter(object):
-    pass
+    # フレームの高さと幅を取得
+    height, width = frame.shape[:2]
 
+    # フレームの中心を計算
+    center = (width // 2, height // 2)
 
-lump = Matter()
+    # フレーム上にマル（円）を線で描画
+    cv2.circle(frame, center, 50, (0, 255, 0), thickness=3)  # 緑色の円（線で描画）
 
-machine = Machine(
-    model=lump, states=STATES, transitions=TRANSITIONS, initial="BothDown"
-)
-print(lump.state)
-lump.RightUp()
-print(lump.state)
-lump.LeftUp()
-print(lump.state)
+    # フレーム上にバツ（2本の直線）を描画
+    cv2.line(
+        frame,
+        (center[0] - 75, center[1] - 75),
+        (center[0] + 75, center[1] + 75),
+        (0, 0, 255),
+        5,
+    )  # 赤色の直線1
+    cv2.line(
+        frame,
+        (center[0] + 75, center[1] - 75),
+        (center[0] - 75, center[1] + 75),
+        (0, 0, 255),
+        5,
+    )  # 赤色の直線2
+
+    # 結果を表示
+    cv2.imshow("Frame", frame)
+
+    # Escキーでループから抜ける
+    if cv2.waitKey(1) & 0xFF == 27:
+        break
+
+# キャプチャを解放し、ウィンドウを閉じる
+cap.release()
+cv2.destroyAllWindows()

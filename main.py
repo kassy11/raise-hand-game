@@ -5,9 +5,12 @@ import time
 import wave
 import pyaudio
 import argparse
-from transitions import Machine
+from statemachine import StateMachine
+from logzero import logger
 
-ACTIONS = (
+# TODO: ここ汚い
+# TODO: 名前変える, RaiseRightとか
+TRIGGERS = (
     "RightUp",
     "RightNotUp",
     "RightDown",
@@ -20,24 +23,32 @@ ACTIONS = (
 
 INSTRUCTIONS = {
     "en": {
-        "RightUp": "Right Up",
-        "RightNotUp": "Right Not Up",
-        "RightDown": "Right Down",
-        "RightNotDown": "Right Not Down",
-        "LeftUp": "Left Up",
-        "LeftNotUp": "Left Not Up",
-        "LeftDown": "Left Down",
-        "LeftNotDown": "Left Not Down",
+        "RightUp": "Raise Right.",
+        "RightNotUp": "Do not Raise Right.",
+        "RightDown": "Lower Right.",
+        "RightNotDown": "Do not Lower Right.",
+        "LeftUp": "Raise Left.",
+        "LeftNotUp": "Do not Raise Left.",
+        "LeftDown": "Lower Left.",
+        "LeftNotDown": "Do not Lower Left.",
     },
     "ja": {
-        "RightUp": "右上げて",
-        "RightNotUp": "右上げないで",
-        "RightDown": "右下げて",
-        "RightNotDown": "右下げないで",
-        "LeftUp": "左上げて",
-        "LeftNotUp": "左上げないで",
-        "LeftDown": "左下げて",
-        "LeftNotDown": "左下げないで",
+        "RightUp": "Raise Right.",
+        "RightNotUp": "Do not Raise Right.",
+        "RightDown": "Lower Right.",
+        "RightNotDown": "Do not Lower Right.",
+        "LeftUp": "Raise Left.",
+        "LeftNotUp": "Do not Raise Left.",
+        "LeftDown": "Lower Left.",
+        "LeftNotDown": "Do not Lower Left.",
+        # "RightUp": "右上げて",
+        # "RightNotUp": "右上げないで",
+        # "RightDown": "右下げて",
+        # "RightNotDown": "右下げないで",
+        # "LeftUp": "左上げて",
+        # "LeftNotUp": "左上げないで",
+        # "LeftDown": "左下げて",
+        # "LeftNotDown": "左下げないで",
     },
 }
 
@@ -52,49 +63,6 @@ VOICE_FILES = {
     "LeftDown": "left_down.wav",
     "LeftNotDown": "left_not_down.wav",
 }
-
-STATES = ("BothDown", "BothUp", "OnlyRightUp", "OnlyLeftUp")
-
-TRANSITIONS = {
-    # when current state is BothDown
-    {"trigger": "RightDown", "source": "BothDown", "dest": "BothDown"},
-    {"trigger": "LeftDown", "source": "BothDown", "dest": "BothDown"},
-    {"trigger": "RightNotUp", "source": "BothDown", "dest": "BothDown"},
-    {"trigger": "LeftNotUp", "source": "BothDown", "dest": "BothDown"},
-    {"trigger": "RightUp", "source": "BothDown", "dest": "OnlyRightUp"},
-    {"trigger": "RightNotDown", "source": "BothDown", "dest": "OnlyRightUp"},
-    {"trigger": "LeftUp", "source": "BothDown", "dest": "OnlyLeftUp"},
-    {"trigger": "LeftNotDown", "source": "BothDown", "dest": "OnlyLeftUp"},
-    # when current state is OnlyRightUp
-    {"trigger": "RightDown", "source": "OnlyRightUp", "dest": "BothDown"},
-    {"trigger": "RightNotUp", "source": "OnlyRightUp", "dest": "BothDown"},
-    {"trigger": "LeftDown", "source": "OnlyRightUp", "dest": "OnlyRightUp"},
-    {"trigger": "LeftNotUp", "source": "OnlyRightUp", "dest": "OnlyRightUp"},
-    {"trigger": "RightUp", "source": "OnlyRightUp", "dest": "OnlyRightUp"},
-    {"trigger": "RightNotDown", "source": "OnlyRightUp", "dest": "OnlyRightUp"},
-    {"trigger": "LeftUp", "source": "OnlyRightUp", "dest": "OnlyLeftUp"},
-    {"trigger": "LeftNotDown", "source": "OnlyRightUp", "dest": "OnlyLeftUp"},
-    # when current state is OnlyLeftUp
-    {"trigger": "LeftDown", "source": "OnlyLeftUp", "dest": "BothDown"},
-    {"trigger": "LeftNotUp", "source": "OnlyLeftUp", "dest": "BothDown"},
-    {"trigger": "RightUp", "source": "OnlyLeftUp", "dest": "BothUp"},
-    {"trigger": "RightNotDown", "source": "OnlyLeftUp", "dest": "BothUp"},
-    {"trigger": "RightDown", "source": "OnlyLeftUp", "dest": "OnlyLeftUp"},
-    {"trigger": "RightNotUp", "source": "OnlyLeftUp", "dest": "OnlyLeftUp"},
-    {"trigger": "LeftUp", "source": "OnlyLeftUp", "dest": "OnlyLeftUp"},
-    {"trigger": "LeftNotDown", "source": "OnlyLeftUp", "dest": "OnlyLeftUp"},
-    # when current state is BothUp
-    {"trigger": "RightDown", "source": "BothUp", "dest": "OnlyLeftUp"},
-    {"trigger": "RightNotUp", "source": "BothUp", "dest": "OnlyLeftUp"},
-    {"trigger": "LeftDown", "source": "BothUp", "dest": "OnlyRightUp"},
-    {"trigger": "LeftNotUp", "source": "BothUp", "dest": "OnlyRightUp"},
-    {"trigger": "RightUp", "source": "BothUp", "dest": "BothUp"},
-    {"trigger": "RightNotDown", "source": "BothUp", "dest": "BothUp"},
-    {"trigger": "LeftUp", "source": "BothUp", "dest": "BothUp"},
-    {"trigger": "LeftNotDown", "source": "BothUp", "dest": "BothUp"},
-}
-
-machine = Machine(states=STATES, transitions=TRANSITIONS, initial="BothDown")
 
 
 def play_wav(filename):
@@ -117,8 +85,34 @@ def play_wav(filename):
     p.terminate()
 
 
+def display_correct_mark(frame, center):
+    logger.info("正解")
+    # フレーム上にマル（円）を線で描画（円の半径を100に設定）
+    cv2.circle(frame, center, 100, (0, 255, 0), thickness=3)  # 緑色の円（線で描画）
+    return
+
+
+def display_incorrect_mark(frame, center):
+    logger.info("不正解")
+    # フレーム上にバツ（2本の直線）を描画
+    cv2.line(
+        frame,
+        (center[0] - 75, center[1] - 75),
+        (center[0] + 75, center[1] + 75),
+        (0, 0, 255),
+        5,
+    )  # 赤色の直線1
+    cv2.line(
+        frame,
+        (center[0] + 75, center[1] - 75),
+        (center[0] - 75, center[1] + 75),
+        (0, 0, 255),
+        5,
+    )  # 赤色の直線2
+    return
+
+
 def main():
-    # command line args
     parser = argparse.ArgumentParser()
     parser.add_argument(
         "--lang",
@@ -129,7 +123,9 @@ def main():
     args = parser.parse_args()
     lang = args.lang
 
-    # MediaPipeの初期化
+    machine = StateMachine()
+
+    # initialize mediapipe
     mp_hands = mp.solutions.hands
     hands = mp_hands.Hands(
         static_image_mode=False,
@@ -139,26 +135,30 @@ def main():
     )
     mp_drawing = mp.solutions.drawing_utils
 
-    # カメラキャプチャの開始
+    # camera capture
     cap = cv2.VideoCapture(0)
 
-    # ゲーム状態管理用
+    # instruction
     current_instruction = None
     instruction_start_time = None
-    # TODO: コマンドライン引数で難易度指定して、ここを変える
-    instruction_duration = 5  # 指示の持続時間
+    instruction_duration = 3  # 指示の持続時間
 
     while cap.isOpened():
         success, image = cap.read()
         if not success:
-            print("Ignoring empty camera frame.")
+            logger.info("Ignoring empty camera frame.")
             continue
+
+        # フレームの高さと幅を取得
+        height, width = image.shape[:2]
+
+        # フレームの中心を計算
+        center = (width // 2, height // 2)
 
         image = cv2.cvtColor(cv2.flip(image, 1), cv2.COLOR_BGR2RGB)
         image.flags.writeable = False
 
-        results = hands.process(image)
-
+        result = hands.process(image)
         image.flags.writeable = True
         image = cv2.cvtColor(image, cv2.COLOR_RGB2BGR)
 
@@ -166,13 +166,53 @@ def main():
             current_instruction is None
             or time.time() - instruction_start_time > instruction_duration
         ):
-            current_instruction = random.choice(INSTRUCTIONS)
+            # TODO: ここで更新する前に正解判定をすれば良さそう
+            if machine.state == "BothDown":
+                display_correct_mark(
+                    image, center
+                ) if result.multi_handedness is None else display_incorrect_mark(
+                    image, center
+                )
+            elif machine.state == "BothUp":
+                display_correct_mark(
+                    image, center
+                ) if result.multi_handedness is not None and len(
+                    result.multi_handedness
+                ) == 2 else display_incorrect_mark(image, center)
+            elif machine.state == "OnlyRightUp":
+                # TODO: ここ汚い
+                hand_type = (
+                    result.multi_handedness[0].classification[0].label
+                    if result.multi_handedness is not None
+                    else None
+                )
+                display_correct_mark(
+                    image, center
+                ) if hand_type == "Right" else display_incorrect_mark(image, center)
+            elif machine.state == "OnlyLeftUp":
+                hand_type = (
+                    result.multi_handedness[0].classification[0].label
+                    if result.multi_handedness is not None
+                    else None
+                )
+                display_correct_mark(
+                    image, center
+                ) if hand_type == "Left" else display_incorrect_mark(image, center)
+
+            # get new trigger
+            current_trigger = random.choice(TRIGGERS)
+            # move state
+            getattr(machine, current_trigger)()
+            logger.info(f"Current correct state: {machine.state}.")
+            current_instruction = INSTRUCTIONS[lang][current_trigger]
             instruction_start_time = time.time()
-            print("New instruction:", current_instruction)
-            voice_file = VOICE_FILES[current_instruction]
+            logger.info(
+                f"New instruction: {current_instruction}",
+            )
+            voice_file = VOICE_FILES[current_trigger]
             play_wav(f"./voice/{lang}/{voice_file}")
 
-        # 指示を画面に表示
+        # display instruction
         # TODO: 言語によって表示を変える
         cv2.putText(
             image,
@@ -185,33 +225,15 @@ def main():
             cv2.LINE_AA,
         )
 
-        # TODO: ここで状態管理と正解判定
-        # 手があるとき
-        hand_type = None
-        if results.multi_hand_landmarks:
-            for hand_landmarks, handedness in zip(
-                results.multi_hand_landmarks, results.multi_handedness
-            ):
-                # 手のタイプ（右手 or 左手）を判断
+        if result.multi_hand_landmarks:
+            for hand_landmarks in result.multi_hand_landmarks:
                 mp_drawing.draw_landmarks(
                     image, hand_landmarks, mp_hands.HAND_CONNECTIONS
-                )
-                hand_type = handedness.classification[0].label  # 'Right' or 'Left'
-                pos = 1000 if hand_type == "Right" else 900
-                cv2.putText(
-                    image,
-                    hand_type,
-                    (pos, 50),
-                    cv2.FONT_HERSHEY_SIMPLEX,
-                    1,
-                    (0, 255, 255),
-                    2,
-                    cv2.LINE_AA,
                 )
 
         cv2.imshow("MediaPipe Hands", image)
 
-        if cv2.waitKey(5) & 0xFF == 27:  # ESCキーで終了
+        if cv2.waitKey(5) & 0xFF == 27:
             break
 
     hands.close()
