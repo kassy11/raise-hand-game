@@ -77,7 +77,7 @@ def play_wav(filename):
 
 
 def display_game_over(num_correct):
-    image = cv2.imread("game_over.png")
+    image = cv2.imread("./assets/game_over.png")
 
     cv2.putText(
         image,
@@ -153,11 +153,13 @@ def main():
             or time.time() - instruction_start_time > instruction_duration
         ):
             if machine.state == "BothDown" and current_instruction is not None:
+                # when hands cannot be detected
                 if result.multi_handedness is None:
                     num_correct += 1
                 else:
                     break
             elif machine.state == "BothUp":
+                # when the number of detected hands is 2
                 if (
                     result.multi_handedness is not None
                     and len(result.multi_handedness) == 2
