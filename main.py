@@ -8,7 +8,7 @@ import argparse
 from state_machine import StateMachine
 from logzero import logger
 
-TRIGGERS = (
+TRIGGERS = [
     "RaiseRight",
     "DoNotRaiseRight",
     "LowerRight",
@@ -17,7 +17,7 @@ TRIGGERS = (
     "DoNotRaiseLeft",
     "LowerLeft",
     "DoNotLowerLeft",
-)
+]
 
 INSTRUCTIONS = {
     "en": {
@@ -103,6 +103,29 @@ def display_game_over(num_correct):
     return
 
 
+def remove_values(arr, values):
+    for value in values:
+        if value in arr:
+            arr.remove(value)
+    return arr
+
+
+def get_new_trigger(state, current_trigger):
+    triggers = TRIGGERS.copy()
+    if current_trigger is not None:
+        triggers.remove(current_trigger)
+
+    if state == "BothDown":
+        triggers = remove_values(triggers, ["LowerLeft", "LowerRight"])
+    elif state == "OnlyRaiseLeft":
+        triggers = remove_values(triggers, ["LowerRight"])
+    elif state == "OnlyRaiseRight":
+        triggers = remove_values(triggers, ["LowerLeft"])
+    elif state == "BothUp":
+        triggers = remove_values(triggers, ["RaiseLeft", "RaiseRight"])
+    return random.choice(triggers)
+
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument(
@@ -130,6 +153,7 @@ def main():
     cap = cv2.VideoCapture(0)
 
     # instruction
+    current_trigger = None
     current_instruction = None
     instruction_start_time = None
     instruction_duration = 3
@@ -190,7 +214,7 @@ def main():
                     break
 
             # get new trigger
-            current_trigger = random.choice(TRIGGERS)
+            current_trigger = get_new_trigger(machine.state, current_trigger)
             # move state
             getattr(machine, current_trigger)()
             logger.info(f"Current correct state: {machine.state}.")
