@@ -5,7 +5,7 @@ import time
 import wave
 import pyaudio
 import argparse
-from statemachine import StateMachine
+from state_machine import StateMachine
 from logzero import logger
 
 TRIGGERS = (
