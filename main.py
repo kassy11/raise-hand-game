@@ -254,6 +254,7 @@ def main():
     cap.release()
     cv2.destroyAllWindows()
 
+    play_wav(f"./voice/{lang}/game_over.wav")
     while True:
         display_game_over(num_correct)
         if cv2.waitKey(5) & 0xFF == 27:
