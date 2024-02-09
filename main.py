@@ -7,6 +7,7 @@ import pyaudio
 import argparse
 from state_machine import StateMachine
 from logzero import logger
+import threading
 
 TRIGGERS = [
     "RaiseRight",
@@ -56,24 +57,28 @@ VOICE_FILES = {
 }
 
 
-def play_wav(filename):
-    wav_file = wave.open(filename, "rb")
-    p = pyaudio.PyAudio()
-    stream = p.open(
-        format=p.get_format_from_width(wav_file.getsampwidth()),
-        channels=wav_file.getnchannels(),
-        rate=wav_file.getframerate(),
-        output=True,
-    )
+def play_wav_async(filename):
+    def task():
+        wav_file = wave.open(filename, "rb")
+        p = pyaudio.PyAudio()
+        stream = p.open(
+            format=p.get_format_from_width(wav_file.getsampwidth()),
+            channels=wav_file.getnchannels(),
+            rate=wav_file.getframerate(),
+            output=True,
+        )
 
-    data = wav_file.readframes(1024)
-    while data:
-        stream.write(data)
         data = wav_file.readframes(1024)
+        while data:
+            stream.write(data)
+            data = wav_file.readframes(1024)
 
-    stream.stop_stream()
-    stream.close()
-    p.terminate()
+        stream.stop_stream()
+        stream.close()
+        p.terminate()
+
+    thread = threading.Thread(target=task)
+    thread.start()
 
 
 def display_game_over(num_correct):
@@ -103,7 +108,7 @@ def display_game_over(num_correct):
     return
 
 
-def remove_values(arr, values):
+def _remove_values(arr, values):
     for value in values:
         if value in arr:
             arr.remove(value)
@@ -116,13 +121,13 @@ def get_new_trigger(state, current_trigger):
         triggers.remove(current_trigger)
 
     if state == "BothDown":
-        triggers = remove_values(triggers, ["LowerLeft", "LowerRight"])
+        triggers = _remove_values(triggers, ["LowerLeft", "LowerRight"])
     elif state == "OnlyRaiseLeft":
-        triggers = remove_values(triggers, ["LowerRight"])
+        triggers = _remove_values(triggers, ["LowerRight"])
     elif state == "OnlyRaiseRight":
-        triggers = remove_values(triggers, ["LowerLeft"])
+        triggers = _remove_values(triggers, ["LowerLeft"])
     elif state == "BothUp":
-        triggers = remove_values(triggers, ["RaiseLeft", "RaiseRight"])
+        triggers = _remove_values(triggers, ["RaiseLeft", "RaiseRight"])
     return random.choice(triggers)
 
 
@@ -156,7 +161,7 @@ def main():
     current_trigger = None
     current_instruction = None
     instruction_start_time = None
-    instruction_duration = 3
+    instruction_duration = 2
 
     num_correct = 0
     while cap.isOpened():
@@ -224,7 +229,7 @@ def main():
                 f"New instruction: {current_instruction}",
             )
             voice_file = VOICE_FILES[current_trigger]
-            play_wav(f"./voice/{lang}/{voice_file}")
+            play_wav_async(f"./voice/{lang}/{voice_file}")
 
         # display instruction
         # TODO: 日本語対応
@@ -254,7 +259,7 @@ def main():
     cap.release()
     cv2.destroyAllWindows()
 
-    play_wav(f"./voice/{lang}/game_over.wav")
+    play_wav_async(f"./voice/{lang}/game_over.wav")
     while True:
         display_game_over(num_correct)
         if cv2.waitKey(5) & 0xFF == 27:
